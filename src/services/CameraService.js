@@ -1,3 +1,5 @@
+import { logError } from '../utils/common.js';
+
 export class CameraService {
   constructor() {
     this.stream = null;
@@ -14,22 +16,87 @@ export class CameraService {
     this.canvas = canvasElement;
   }
 
-  // TODO [Basic] Tambahkan konfigurasi kamera untuk mendapatkan daftar perangkat input video
-  // TODO [Basic] Dapatkan constraints kamera berdasarkan konfigurasi dan kamera yang dipilih
-  async loadCameras() {}
+  async loadCameras() {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const cameras = devices.filter((device) => device.kind === 'videoinput');
 
-  // TODO [Basic] Memulai kamera dengan perangkat yang dipilih dan menampilkan pada elemen video
-  async startCamera(selectedCameraId) {}
+    this.config = {
+      ...this.config,
+      cameras,
+      fps: this.config?.fps ?? 30,
+    };
 
-  // TODO [Basic] Menghentikan siaran kamera dan membersihkan sumber daya
-  stopCamera() {}
+    return cameras;
+  }
 
-  // TODO [Skilled] Implementasikan metode untuk mengatur FPS kamera
-  setFPS(fps) {}
+  getConstraints(selectedCameraId) {
+    const video = {
+      width: { ideal: 640 },
+      height: { ideal: 480 },
+      frameRate: { ideal: this.config?.fps ?? 30 },
+    };
 
-  // TODO [Basic] Periksa apakah kamera sedang aktif
-  isActive() {}
+    const isKnownDevice = this.config?.cameras?.some(
+      (camera) => camera.deviceId === selectedCameraId,
+    );
 
-  // TODO [Basic] Periksa apakah elemen video siap untuk digunakan
-  isReady() {}
+    if (isKnownDevice) {
+      video.deviceId = { exact: selectedCameraId };
+    } else {
+      video.facingMode = selectedCameraId === 'front' ? 'user' : 'environment';
+    }
+
+    return { video, audio: false };
+  }
+
+  async startCamera(selectedCameraId) {
+    if (!this.video) {
+      throw new Error('Elemen video belum disiapkan');
+    }
+
+    this.stopCamera();
+
+    this.stream = await navigator.mediaDevices.getUserMedia(this.getConstraints(selectedCameraId));
+    this.video.srcObject = this.stream;
+
+    await new Promise((resolve) => {
+      this.video.onloadedmetadata = () => resolve();
+    });
+    await this.video.play();
+  }
+
+  stopCamera() {
+    if (this.stream) {
+      this.stream.getTracks().forEach((track) => track.stop());
+      this.stream = null;
+    }
+
+    if (this.video) {
+      this.video.srcObject = null;
+    }
+  }
+
+  setFPS(fps) {
+    this.config = { ...this.config, fps };
+
+    const [track] = this.stream?.getVideoTracks() ?? [];
+    if (track) {
+      track.applyConstraints({ frameRate: { ideal: fps } }).catch((error) => {
+        logError('Gagal mengatur FPS kamera', error);
+      });
+    }
+  }
+
+  isActive() {
+    return this.stream !== null && this.stream.active;
+  }
+
+  isReady() {
+    return (
+      this.isActive() &&
+      this.video !== null &&
+      this.video.readyState >= 2 &&
+      this.video.videoWidth > 0
+    );
+  }
 }

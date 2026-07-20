@@ -2,6 +2,7 @@ import daStyle from 'eslint-config-dicodingacademy';
 import pluginReact from 'eslint-plugin-react';
 
 export default [
+  { ignores: ['dist', 'node_modules', 'dev-dist'] },
   daStyle,
   {
     files: ['**/*.{js,jsx}'],

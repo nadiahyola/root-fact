@@ -4,6 +4,7 @@ const initialState = {
   appState: 'idle',
   isRunning: false,
   modelStatus: 'Memuat Model AI...',
+  modelProgress: 0,
   detectionResult: null,
   funFactData: null,
   error: null,
@@ -16,6 +17,7 @@ const initialState = {
 
 const ActionTypes = {
   SET_MODEL_STATUS: 'SET_MODEL_STATUS',
+  SET_MODEL_PROGRESS: 'SET_MODEL_PROGRESS',
   SET_SERVICES: 'SET_SERVICES',
   SET_RUNNING: 'SET_RUNNING',
   SET_APP_STATE: 'SET_APP_STATE',
@@ -29,6 +31,9 @@ function appReducer(state, action) {
   switch (action.type) {
   case ActionTypes.SET_MODEL_STATUS:
     return { ...state, modelStatus: action.payload };
+
+  case ActionTypes.SET_MODEL_PROGRESS:
+    return { ...state, modelProgress: action.payload };
 
   case ActionTypes.SET_SERVICES:
     return { ...state, services: action.payload };
@@ -69,6 +74,9 @@ export function useAppState() {
     () => ({
       setModelStatus: (status) =>
         dispatch({ type: ActionTypes.SET_MODEL_STATUS, payload: status }),
+
+      setModelProgress: (progress) =>
+        dispatch({ type: ActionTypes.SET_MODEL_PROGRESS, payload: progress }),
 
       setServices: (services) =>
         dispatch({ type: ActionTypes.SET_SERVICES, payload: services }),
